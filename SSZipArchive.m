@@ -29,22 +29,22 @@
 
 #pragma mark - Unzipping
 
-+ (BOOL)unzipFileAtPath:(NSString *)path toDestination:(NSString *)destination {
-	return [self unzipFileAtPath:path toDestination:destination delegate:nil];
++ (BOOL)unzipFileAtPath:(NSString *)path toDestination:(NSString *)destination resultingItemPath:(NSString **)resultingItemPath {
+	return [self unzipFileAtPath:path toDestination:destination resultingItemPath:resultingItemPath delegate:nil];
 }
 
 
-+ (BOOL)unzipFileAtPath:(NSString *)path toDestination:(NSString *)destination overwrite:(BOOL)overwrite password:(NSString *)password error:(NSError **)error {
-	return [self unzipFileAtPath:path toDestination:destination overwrite:overwrite password:password error:error delegate:nil];
++ (BOOL)unzipFileAtPath:(NSString *)path toDestination:(NSString *)destination overwrite:(BOOL)overwrite password:(NSString *)password resultingItemPath:(NSString **)resultingItemPath error:(NSError **)error {
+	return [self unzipFileAtPath:path toDestination:destination overwrite:overwrite password:password resultingItemPath:resultingItemPath error:error delegate:nil];
 }
 
 
-+ (BOOL)unzipFileAtPath:(NSString *)path toDestination:(NSString *)destination delegate:(id<SSZipArchiveDelegate>)delegate {
-	return [self unzipFileAtPath:path toDestination:destination overwrite:YES password:nil error:nil delegate:delegate];
++ (BOOL)unzipFileAtPath:(NSString *)path toDestination:(NSString *)destination resultingItemPath:(NSString **)resultingItemPath delegate:(id<SSZipArchiveDelegate>)delegate {
+	return [self unzipFileAtPath:path toDestination:destination overwrite:YES password:nil resultingItemPath:resultingItemPath error:nil delegate:delegate];
 }
 
 
-+ (BOOL)unzipFileAtPath:(NSString *)path toDestination:(NSString *)destination overwrite:(BOOL)overwrite password:(NSString *)password error:(NSError **)error delegate:(id<SSZipArchiveDelegate>)delegate {
++ (BOOL)unzipFileAtPath:(NSString *)path toDestination:(NSString *)destination overwrite:(BOOL)overwrite password:(NSString *)password resultingItemPath:(NSString **)resultingItemPath error:(NSError **)error delegate:(id<SSZipArchiveDelegate>)delegate {
 	// Begin opening
 	zipFile zip = unzOpen((const char*)[path UTF8String]);	
 	if (zip == NULL) {
@@ -112,6 +112,9 @@
 		unzGetCurrentFileInfo(zip, &fileInfo, filename, fileInfo.size_filename + 1, NULL, 0, NULL, 0);
 		filename[fileInfo.size_filename] = '\0';
         
+		if (currentFileNumber == 0)
+			*resultingItemPath = [destination stringByAppendingPathComponent:[NSString stringWithUTF8String:filename]];
+        
         //
         // NOTE
         // I used the ZIP spec from here:
@@ -153,8 +156,8 @@
 		
 		NSString *fullPath = [destination stringByAppendingPathComponent:strPath];
 		NSError *err = nil;
-        NSDate *modDate = [[self class] _dateWithMSDOSFormat:(UInt32)fileInfo.dosDate];
-        NSDictionary *directoryAttr = [NSDictionary dictionaryWithObjectsAndKeys:modDate, NSFileCreationDate, modDate, NSFileModificationDate, nil];
+		NSDate *modDate = [[self class] _dateWithMSDOSFormat:(UInt32)fileInfo.dosDate];
+		NSDictionary *directoryAttr = [NSDictionary dictionaryWithObjectsAndKeys:modDate, NSFileCreationDate, modDate, NSFileModificationDate, nil];
 		
 		if (isDirectory) {
 			[fileManager createDirectoryAtPath:fullPath withIntermediateDirectories:YES attributes:directoryAttr  error:&err];
